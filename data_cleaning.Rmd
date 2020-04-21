@@ -7,30 +7,43 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(tidyverse)
 library(readr)
 library(janitor)
 library(gt)
 library(lubridate)
 library(gganimate)
+library(tidycensus)
+library(tidyverse)
+options(tigris_use_cache = TRUE)
 ```
 
-## R Markdown
+```{r median_income_by_county}
+pop <- get_decennial(geography = "county",
+                     variables = "P001001",
+                     year = 2010,
+                     output = "wide",
+                     geometry = TRUE,
+                     shift_geo = TRUE)
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+medinc <- get_acs(geography = "county",
+              variables = c(medincome = "B19013_001"),
+              year = 2018) %>%
+  rename(medincome = estimate) %>%
+  select(GEOID, NAME, medincome)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+pop <- pop %>%
+  left_join(medinc, by = c("GEOID", "NAME"))
 
-```{r cars}
-summary(cars)
+medinc_by_county <- pop %>%
+  ggplot(aes(fill = medincome)) +
+  geom_sf() +
+  scale_fill_viridis_c(option = "plasma",
+                       direction = -1) +
+  labs(title = "Median Income of the United States",
+       caption = "Source: Census 2010",
+       fill = "Median Income") +
+  theme_void()
+
+medinc_by_county
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
