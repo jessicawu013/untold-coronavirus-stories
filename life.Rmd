@@ -6,7 +6,10 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
+library(scales)
+library(ggthemes)
+library(lubridate)
 library(tidyverse)
 ```
 
@@ -69,15 +72,30 @@ home_life <- boredom %>%
   rename(date = Day) %>%
   pivot_longer(-date, names_to = "search", values_to = "frequency")
 
-home_life %>%
-  ggplot(aes(x = date, y = frequency, color = search)) +
-  geom_line() + 
+events <- tibble(time = c(ymd(20200314),
+                              ymd(20200317),
+                              ymd(20200321)),
+                     text = c('Harvard College students must move out by today',
+                              'Trump announces "15 days to slow the spread" plan',
+                              'Governor Cuomo issues stay-at-home order for NY'))
+
+search_terms <- home_life %>%
+  ggplot() +
+  geom_line(aes(x = date, y = frequency, color = search)) + 
   geom_vline(xintercept=as.numeric(home_life$date[c(24, 25, 49)]),
-                linetype=3, colour="black") +
-  theme_classic() +
+                linetype=2, colour="black") +
+  theme_calc() +
   labs(title = "What are people doing while at home?",
        subtitle = "Taking a look a Google Search trends",
-       y = "Percent Frequency of Search \n\ Relative to Itself on March 10th",
-       x = "Date")
+       y = "Percent (%) Frequency of Search \n\ Relative to Itself on March 10th",
+       x = "Date") +
+  scale_color_discrete(name = "Search Term", labels = c('"boredom"',
+                                                        '"bread recipe"',
+                                                        '"dalgona coffee"',
+                                                        '"how to cut your own hair"')) +
+  geom_text(data = events, mapping = aes(label = text, y = 700, x = time), 
+            angle = 90,
+            hjust = -0.20,
+            size = 3)
 ```
 
