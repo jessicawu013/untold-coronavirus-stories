@@ -17,7 +17,8 @@ bread <- read_csv("data-sources/bread.csv",
   Day = col_date(format = ""),
   `bread recipe: (United States)` = col_double()
 )) %>%
-  rename(bread = `bread recipe: (United States)`)
+  rename(bread = `bread recipe: (United States)`) %>%
+  mutate(bread = bread / 16 * 100)
 ```
 
 ```{r hair}
@@ -27,7 +28,8 @@ hair <- read_csv("data-sources/hair.csv",
   Day = col_date(format = ""),
   `how to cut your own hair: (United States)` = col_double()
 )) %>%
-  rename(hair = `how to cut your own hair: (United States)`)
+  rename(hair = `how to cut your own hair: (United States)`) %>%
+  mutate(hair = hair / 4 * 100)
 ```
 
 ```{r dalgona coffee}
@@ -37,7 +39,8 @@ dalgona <- read_csv("data-sources/dalgona.csv",
   Day = col_date(format = ""),
   `dalgona coffee: (United States)` = col_double()
 )) %>%
-  rename(dalgona = `dalgona coffee: (United States)`)
+  rename(dalgona = `dalgona coffee: (United States)`) %>%
+  mutate(dalgona = dalgona * 100)
 
 dalgona
 ```
@@ -50,7 +53,8 @@ boredom <- read_csv("data-sources/boredom.csv",
   Day = col_date(format = ""),
   `boredom: (United States)` = col_double()
 )) %>%
-  rename(boredom = `boredom: (United States)`)
+  rename(boredom = `boredom: (United States)`) %>%
+  mutate(boredom = boredom / 5 * 100)
 ```
 
 On Tuesday, March 10th, 2020, Harvard College students were instructed to move 
@@ -70,6 +74,10 @@ home_life %>%
   geom_line() + 
   geom_vline(xintercept=as.numeric(home_life$date[c(24, 25, 49)]),
                 linetype=3, colour="black") +
-  theme_classic()
+  theme_classic() +
+  labs(title = "What are people doing while at home?",
+       subtitle = "Taking a look a Google Search trends",
+       y = "Percent Frequency of Search \n\ Relative to Itself on March 10th",
+       x = "Date")
 ```
 
