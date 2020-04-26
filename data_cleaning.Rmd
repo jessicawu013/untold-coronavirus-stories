@@ -17,13 +17,30 @@ library(tidyverse)
 options(tigris_use_cache = TRUE)
 ```
 
+```{r read_in_confirmed}
+confirmed <- read_csv("data-sources/covid19_confirmed_cases_2020-04-21.csv") %>%
+  rename(state = Province_State, county = Admin2) %>%
+  select(county,
+         state,
+         starts_with("3/1"),
+         starts_with("3/2"),
+         starts_with("3/3"),
+         starts_with("4"),
+         -"3/1/20",
+         -"3/2/20",
+         -"3/3/20") %>%
+  tail(-5) %>%
+  pivot_longer(cols = -c(county, state), names_to = "date", values_to = "count")
+
+# changing date from type character to type date
+confirmed$date <- as.Date(confirmed$date, "%m/%d/%y")
+
+today <- confirmed %>%
+  filter(date == "2020-04-20")
+
+```
+
 ```{r median_income_by_county}
-pop <- get_decennial(geography = "county",
-                     variables = "P001001",
-                     year = 2010,
-                     output = "wide",
-                     geometry = TRUE,
-                     shift_geo = TRUE)
 
 medinc <- get_acs(geography = "county",
               variables = c(medincome = "B19013_001"),
@@ -31,9 +48,15 @@ medinc <- get_acs(geography = "county",
   rename(medincome = estimate) %>%
   select(GEOID, NAME, medincome)
 
-pop <- pop %>%
-  left_join(medinc, by = c("GEOID", "NAME"))
-
+pop <- get_decennial(geography = "county",
+                     variables = "P001001",
+                     year = 2010,
+                     output = "wide",
+                     geometry = TRUE,
+                     shift_geo = TRUE) %>%
+  left_join(medinc, by = c("GEOID", "NAME")) %>%
+  separate(NAME, c("county", "state"), "County, ")
+  
 medinc_by_county <- pop %>%
   ggplot(aes(fill = medincome)) +
   geom_sf() +
@@ -45,5 +68,22 @@ medinc_by_county <- pop %>%
   theme_void()
 
 medinc_by_county
+```
+
+```{r confirmed_map}
+
+confirmed_map <- pop %>%
+  select(county, state, geometry)
+
+map <- merge(confirmed_map, confirmed, all.x = TRUE, all.y = TRUE)
+
+```
+
+```{r death}
+
+```
+
+```{r}
+
 ```
 

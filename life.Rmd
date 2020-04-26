@@ -1,0 +1,75 @@
+---
+title: "Life"
+author: "Jessica Wu"
+date: "4/25/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+```{r bread}
+bread <- read_csv("data-sources/bread.csv",
+         skip = 1,
+         col_types = cols(
+  Day = col_date(format = ""),
+  `bread recipe: (United States)` = col_double()
+)) %>%
+  rename(bread = `bread recipe: (United States)`)
+```
+
+```{r hair}
+hair <- read_csv("data-sources/hair.csv",
+         skip = 1,
+         col_types = cols(
+  Day = col_date(format = ""),
+  `how to cut your own hair: (United States)` = col_double()
+)) %>%
+  rename(hair = `how to cut your own hair: (United States)`)
+```
+
+```{r dalgona coffee}
+dalgona <- read_csv("data-sources/dalgona.csv",
+         skip = 1,
+         col_types = cols(
+  Day = col_date(format = ""),
+  `dalgona coffee: (United States)` = col_double()
+)) %>%
+  rename(dalgona = `dalgona coffee: (United States)`)
+
+dalgona
+```
+
+```{r boredom}
+
+boredom <- read_csv("data-sources/boredom.csv",
+                    skip = 1,
+                    col_types = cols(
+  Day = col_date(format = ""),
+  `boredom: (United States)` = col_double()
+)) %>%
+  rename(boredom = `boredom: (United States)`)
+```
+
+On Tuesday, March 10th, 2020, Harvard College students were instructed to move 
+out of their dorms in 5 days. Here's how life patterns have changed since then.
+```{r}
+
+home_life <- boredom %>%
+  left_join(dalgona, by = "Day") %>%
+  left_join(hair, by = "Day") %>%
+  left_join(bread, by = "Day") %>%
+  tail(-44) %>%
+  rename(date = Day) %>%
+  pivot_longer(-date, names_to = "search", values_to = "frequency")
+
+home_life %>%
+  ggplot(aes(x = date, y = frequency, color = search)) +
+  geom_line() + 
+  geom_vline(xintercept=as.numeric(home_life$date[c(24, 25, 49)]),
+                linetype=3, colour="black") +
+  theme_classic()
+```
+
