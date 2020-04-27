@@ -73,9 +73,10 @@ medinc_by_county
 ```{r confirmed_map}
 
 confirmed_map <- pop %>%
-  select(county, state, geometry)
+  select(GEOID, county, state, geometry)
 
-map <- merge(confirmed_map, confirmed, all.x = TRUE, all.y = TRUE)
+map <- confirmed_map %>%
+  left_join(today, by = c("county", "state"))
 
 ```
 
