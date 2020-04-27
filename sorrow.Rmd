@@ -1,0 +1,76 @@
+---
+title: "Sorrow"
+author: "Jessica Wu"
+date: "4/26/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(choroplethr)
+library(choroplethrMaps)
+library(tidyverse)
+```
+
+
+```{r}
+covid <- read_csv("data-sources/us-counties-covid-04-26.csv",
+                  col_types = cols(
+  date = col_date(format = ""),
+  county = col_character(),
+  state = col_character(),
+  fips = col_double(),
+  cases = col_double(),
+  deaths = col_double()
+)) %>%
+  filter(date == "2020-04-25")
+```
+
+```{r}
+data(df_pop_county) 
+data("df_county_demographics")
+
+df_county_demographics$value = df_county_demographics$percent_black 
+us_black <- county_choropleth(df_county_demographics,
+                  title = "Demographics of the United States in 2013\nPercent Black", 
+                  legend = "Percent Black")
+```
+
+```{r}
+chloropleth_covid <- df_pop_county %>%
+  left_join(covid, by = c("region" = "fips"))
+
+chloropleth_covid$value = chloropleth_covid$cases
+us_cases <- county_choropleth(chloropleth_covid,
+                  num_colors = 9,
+                  title = "Number of Coronavirus Cases as of April 25th, 2020", 
+                  legend = "Number of Cases")
+```
+
+```{r}
+
+df_county_demographics$value = df_county_demographics$percent_black 
+
+ny_black <- county_choropleth(df_county_demographics,
+                  title = "Demographics of New York in 2013\nPercent Black", 
+                  legend = "Percent Black",
+                  state_zoom = "new york")
+```
+```{r}
+
+
+ny_cases <- county_choropleth(chloropleth_covid,
+                  num_colors = 9,
+                  title = "Coronavirus Cases in New York as of April 25th, 2020", 
+                  legend = "Number of Cases",
+                  state_zoom = "new york")
+```
+
+```{r}
+us_cases
+us_black
+ny_cases
+ny_black
+```
+
+

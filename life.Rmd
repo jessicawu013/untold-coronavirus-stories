@@ -45,7 +45,6 @@ dalgona <- read_csv("data-sources/dalgona.csv",
   rename(dalgona = `dalgona coffee: (United States)`) %>%
   mutate(dalgona = dalgona * 100)
 
-dalgona
 ```
 
 ```{r boredom}
@@ -79,7 +78,7 @@ events <- tibble(time = c(ymd(20200314),
                               'Trump announces "15 days to slow the spread" plan',
                               'Governor Cuomo issues stay-at-home order for NY'))
 
-search_terms <- home_life %>%
+life_search_terms <- home_life %>%
   ggplot() +
   geom_line(aes(x = date, y = frequency, color = search)) + 
   geom_vline(xintercept=as.numeric(home_life$date[c(24, 25, 49)]),
