@@ -8,6 +8,12 @@ library(ggthemes)
 library(lubridate)
 library(choroplethr)
 library(choroplethrMaps)
+library(readr)
+library(janitor)
+library(gt)
+library(gganimate)
+library(tidycensus)
+library(broom)
 library(tidyverse)
 
 # loading data
@@ -142,6 +148,37 @@ chloropleth_covid <- df_pop_county %>%
 
 chloropleth_covid$value = chloropleth_covid$cases
 
+medinc <- get_acs(geography = "county",
+                  variables = c(medincome = "B19013_001"),
+                  year = 2018) %>%
+    rename(medincome = estimate) %>%
+    select(GEOID, NAME, medincome)
+
+pop <- get_decennial(geography = "county",
+                     variables = "P001001",
+                     year = 2010,
+                     output = "wide",
+                     geometry = TRUE,
+                     shift_geo = TRUE) %>%
+    left_join(medinc, by = c("GEOID", "NAME")) 
+
+# percent uninsured by county
+sahie <- read_csv("data-sources/sahie_2018.csv",
+                  skip = 79) %>%
+    filter(racecat == 0 & sexcat == 0 & iprcat == 0 & 
+               geocat == 50 & agecat == 0) %>%
+    select(statefips, countyfips, PCTELIG) %>%
+    mutate(fips = paste(statefips, countyfips, sep = "")) %>%
+    select(fips, PCTELIG)
+
+# combined dataset w pop, median income, percent uninsured, cases, deaths
+
+by_county <- pop %>%
+    left_join(covid, by = c("GEOID" = "fips")) %>%
+    left_join(sahie, by = c("GEOID" = "fips"))
+
+cases_vs_status <- glm(cases ~ medincome + PCTELIG, data = by_county)
+
 # ui
 ui <- navbarPage(
     "In the Time of Coronavirus",
@@ -151,7 +188,12 @@ ui <- navbarPage(
                        p("On Tuesday, March 10th, 2020, Harvard College students were 
              instructed to move out of their dorms in 5 days. Here's how life
              patterns have changed since then."),
-                       mainPanel(plotOutput("google_life_plot"))
+                       mainPanel(plotOutput("google_life_plot"),
+                                 p("I would like to export the data from the 
+                                   Health app on my iPhone to take a look at
+                                   how my sleep habits, average daily distance,
+                                   and average screen time have changed since
+                                   being ordered to stay home."))
     )
     ),
     tabPanel("Love",
@@ -180,7 +222,20 @@ ui <- navbarPage(
              )),
     tabPanel("Sorrow",
              titlePanel("Sorrow in the Time of Coronavirus"),
-             p("The sad reality of our times is that there is a lot of sorrow."),
+             HTML("<strong> The reality is, there is a lot of sorrow in this 
+                  world right now. </strong>"),
+             h4("Socioeconomic Injustice"),
+             p("A well-known and unsettling fact about COVID-19 in the United 
+               States is that it is disproportionately affecting African Americans.
+               (Check out this piece by",
+               a(href = "https://www.brookings.edu/blog/fixgov/2020/04/09/why-are-blacks-dying-at-higher-rates-from-covid-19/",
+                              "the Brookings Institute.)"),
+               "Many suggest that the disprortionate amount of Africans with
+               pre-existing health conditions and nonideal living conditions is
+               what drives this trend.
+               I set out to see if this trend was reflected in an analysis 
+               between median income, health insurance, and the number of cases
+               by county."),
              mainPanel(plotOutput("us_black_map"),
                        plotOutput("us_cases_map"),
                        plotOutput("ny_black_map"),
@@ -319,6 +374,29 @@ server <- function(input, output) {
                           title = "Coronavirus Cases in New York as of April 25th, 2020", 
                           legend = "Number of Cases",
                           state_zoom = "new york")
+    )
+    
+    output$cor_table <- renderTable(
+        by_county %>%
+            as_tibble() %>%
+            select(-geometry) %>%
+            select(cases, deaths, medincome, pct_uninsured) %>%
+            cor(use = "complete.obs") %>%
+            gt() %>%
+            tab_header(
+                title = "Relationship Between Coronavirus Cases, Deaths, \n\
+    Median Income, and Percent Uninsured By County",
+                subtitle = "Correlation Matrix"
+            ) %>%
+            cols_label(
+                cases = "Number of Cases",
+                deaths = "Number of Deaths",
+                medincome = "Median Income",
+                pct_uninsured = "% without Health Insurance"
+            ) %>%
+            tab_source_note(
+                source_note = "Sources: The New York Times, American Community Survey 2018"
+            )
     )
 }
 
