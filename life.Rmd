@@ -35,7 +35,7 @@ hair <- read_csv("data-sources/hair.csv",
   mutate(hair = hair / 4 * 100)
 ```
 
-```{r dalgona coffee}
+```{r dalgona coffee, include=FALSE}
 dalgona <- read_csv("data-sources/dalgona.csv",
          skip = 1,
          col_types = cols(
@@ -96,5 +96,9 @@ life_search_terms <- home_life %>%
             angle = 90,
             hjust = -0.20,
             size = 3)
+```
+
+```{r}
+life_search_terms
 ```
 

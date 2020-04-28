@@ -13,24 +13,17 @@ library(gt)
 library(lubridate)
 library(gganimate)
 library(tidycensus)
+library(broom)
 library(tidyverse)
 options(tigris_use_cache = TRUE)
 ```
 
 ```{r read_in_confirmed}
-confirmed <- read_csv("data-sources/covid19_confirmed_cases_2020-04-21.csv") %>%
-  rename(state = Province_State, county = Admin2) %>%
-  select(county,
-         state,
-         starts_with("3/1"),
-         starts_with("3/2"),
-         starts_with("3/3"),
-         starts_with("4"),
-         -"3/1/20",
-         -"3/2/20",
-         -"3/3/20") %>%
-  tail(-5) %>%
-  pivot_longer(cols = -c(county, state), names_to = "date", values_to = "count")
+confirmed <- read_csv("coronavirus/data-sources/covid19_confirmed_cases_2020-04-21.csv",
+                      col_types = cols(
+                        FIPS = col_character()
+                      )) %>%
+  tail(-5)
 
 # changing date from type character to type date
 confirmed$date <- as.Date(confirmed$date, "%m/%d/%y")
@@ -54,8 +47,7 @@ pop <- get_decennial(geography = "county",
                      output = "wide",
                      geometry = TRUE,
                      shift_geo = TRUE) %>%
-  left_join(medinc, by = c("GEOID", "NAME")) %>%
-  separate(NAME, c("county", "state"), "County, ")
+  left_join(medinc, by = c("GEOID", "NAME")) 
   
 medinc_by_county <- pop %>%
   ggplot(aes(fill = medincome)) +
@@ -70,21 +62,147 @@ medinc_by_county <- pop %>%
 medinc_by_county
 ```
 
-```{r confirmed_map}
 
-confirmed_map <- pop %>%
-  select(GEOID, county, state, geometry)
+```{r nytimes}
 
-map <- confirmed_map %>%
-  left_join(today, by = c("county", "state"))
+covid <- read_csv("coronavirus/data-sources/us-counties-covid-04-26.csv",
+                  col_types = cols(
+  date = col_date(format = ""),
+  county = col_character(),
+  state = col_character(),
+  fips = col_character(),
+  cases = col_double(),
+  deaths = col_double()
+)) %>%
+  filter(date == "2020-04-25")
 
-```
+pop_med_covid <- pop %>%
+  left_join(covid, by = c("GEOID" = "fips"))
 
-```{r death}
+pop_med_covid %>%
+  filter(state == "New York") %>%
+  ggplot(aes(fill = medincome)) +
+  geom_sf() +
+  scale_fill_viridis_c(option = "plasma",
+                       direction = -1) +
+  guides(fill = guide_colourbar(nbin = 10)) +
+  labs(title = "Median Income in New York",
+       caption = "Source: 2010 Census",
+       fill = "Number of Cases") +
+  theme_void()
 
 ```
 
 ```{r}
 
+model_1 <- glm(cases ~ medincome, data = pop_med_covid)
+
+pop_med_covid %>%
+  filter(deaths > 5) %>%
+ggplot(aes(x = medincome, y = deaths)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
 ```
+```{r}
+
+sahie <- read_csv("sahie_2018.csv",
+                  skip = 79)
+
+all_ppl <- sahie %>%
+  filter(racecat == 0 & sexcat == 0 & iprcat == 0 & 
+           geocat == 50 & agecat == 0) %>%
+  select(statefips, countyfips, PCTELIG) %>%
+  mutate(fips = paste(statefips, countyfips, sep = "")) %>%
+  select(fips, PCTELIG)
+
+by_county <- pop_med_covid %>%
+  left_join(all_ppl, by = c("GEOID" = "fips")) %>%
+  rename(pct_uninsured = PCTELIG)
+
+```
+
+```{r cor}
+
+by_county %>%
+  as_tibble() %>%
+  select(-geometry) %>%
+  select(cases, deaths, medincome, pct_uninsured) %>%
+  cor(use = "complete.obs") %>%
+  gt() %>%
+  tab_header(
+    title = "Relationship Between Coronavirus Cases, Deaths, \n\
+    Median Income, and Percent Uninsured By County",
+    subtitle = "Correlation Matrix"
+  ) %>%
+  cols_label(
+    cases = "Number of Cases",
+    deaths = "Number of Deaths",
+    medincome = "Median Income",
+    pct_uninsured = "% without Health Insurance"
+  ) %>%
+  tab_source_note(
+    source_note = "Sources: The New York Times, American Community Survey 2018"
+  )
+```
+
+
+```{r lm between cases and medincome pct_uninsured}
+model_2 <- glm(cases ~ medincome + pct_uninsured, data = by_county)
+
+model_2 %>%
+  tidy(conf.int = TRUE) %>%
+  select(term, estimate, conf.low, conf.high) %>%
+  gt() %>%
+  tab_header(
+    title = "Linear Regression for Number of Coronavirus Cases 
+    on Median Income and % Uninsured",
+    subtitle = "by County"
+  ) %>%
+fmt_number(columns = vars(estimate, conf.low, conf.high),
+             decimals = 3) %>%
+  cols_label(
+    term = "Variable",
+    estimate = "Estimate",
+    conf.low = "Lower Bound",
+    conf.high = "Upper Bound"
+  )
+```
+
+```{r plot}
+by_county %>%
+  ggplot(aes(x = medincome, y = cases, color = state)) +
+  geom_point() +
+  geom_smooth(method = "glm", se = FALSE) +
+  geom_smooth(aes(x = medincome, y = cases), color = "black",
+              linetype = 3,
+              method = "glm", se = FALSE) +
+  labs(
+    title = "Median Income vs. Number of Coronavirus Cases",
+    subtitle = "By County as of April 25th, 2020",
+    y = "Number of Cases",
+    x = "Median Income"
+  ) +
+  theme_classic() +
+  theme(legend.position = "none")
+
+by_county %>%
+  ggplot(aes(x = pct_uninsured, y = cases, color = state)) +
+  geom_point() +
+  geom_smooth(method = "glm", se = FALSE) +
+  geom_smooth(aes(x = pct_uninsured, y = cases), color = "black",
+              linetype = 3,
+              method = "glm", se = FALSE) +
+  labs(
+    title = "Percent without Health Insurance vs. Number of Coronavirus Cases",
+    subtitle = "By County as of April 25th, 2020",
+    y = "Number of Cases",
+    x = "% without Health Insurance"
+  ) +
+  theme_classic() +
+  theme(legend.position = "none")
+```
+
+
+
 

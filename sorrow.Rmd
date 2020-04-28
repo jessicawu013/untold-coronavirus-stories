@@ -67,10 +67,28 @@ ny_cases <- county_choropleth(chloropleth_covid,
 ```
 
 ```{r}
-us_cases
 us_black
 ny_cases
 ny_black
 ```
 
+### Graph the Number of Cases over Time
+```{r}
+
+covid <- read_csv("coronavirus/data-sources/us-counties-covid-04-26.csv",
+                  col_types = cols(
+  date = col_date(format = ""),
+  county = col_character(),
+  state = col_character(),
+  fips = col_character(),
+  cases = col_double(),
+  deaths = col_double()
+)) %>%
+  filter(date == "2020-04-25") 
+
+covid %>%
+  filter(!state == "New York" & !state == "New Jersey") %>%
+  ggplot(aes(x = state, y = cases)) +
+  geom_col()
+```
 
