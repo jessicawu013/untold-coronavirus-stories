@@ -129,7 +129,7 @@ dom_violence <- read_csv("data-sources/domesticviolence.csv",
 
 # Data for Sorrow
 
-covid <- read_csv("data-sources/us-counties-covid-04-26.csv",
+covid <- read_csv("data-sources/us-counties-covid-05-08.csv",
                   col_types = cols(
                       date = col_date(format = ""),
                       county = col_character(),
@@ -138,7 +138,7 @@ covid <- read_csv("data-sources/us-counties-covid-04-26.csv",
                       cases = col_double(),
                       deaths = col_double()
                   )) %>%
-    filter(date == "2020-04-25")
+    filter(date == "2020-05-07")
 
 data(df_pop_county) 
 data("df_county_demographics")
@@ -174,7 +174,7 @@ sahie <- read_csv("data-sources/sahie_2018.csv",
 
 # combined dataset w pop, median income, percent uninsured, cases, deaths
 
-covid1 <- read_csv("data-sources/us-counties-covid-04-26.csv",
+covid1 <- read_csv("data-sources/us-counties-covid-05-08.csv",
                   col_types = cols(
                       date = col_date(format = ""),
                       county = col_character(),
@@ -183,7 +183,7 @@ covid1 <- read_csv("data-sources/us-counties-covid-04-26.csv",
                       cases = col_double(),
                       deaths = col_double()
                   )) %>%
-    filter(date == "2020-04-25")
+    filter(date == "2020-05-07")
 
 by_county <- pop %>%
     left_join(covid1, by = c("GEOID" = "fips")) %>%
@@ -243,13 +243,18 @@ ui <- navbarPage(
                (Check out this piece by",
                a(href = "https://www.brookings.edu/blog/fixgov/2020/04/09/why-are-blacks-dying-at-higher-rates-from-covid-19/",
                               "the Brookings Institute.)"),
-               "Many suggest that the disprortionate amount of Africans with
-               pre-existing health conditions and nonideal living conditions is
+               "Many suggest that the disprortionate number of African Americans with
+               pre-existing health conditions and in lower-income neighborhoods is
                what drives this trend.
                I set out to see if this trend was reflected in an analysis 
                between median income, health insurance, and the number of cases
                by county."),
-             mainPanel(gt_output("cor_table"),
+             splitLayout(plotOutput("us_black_map"),
+             plotOutput("us_cases_map")),
+             splitLayout(plotOutput("ny_black_map"),
+             plotOutput("ny_cases_map")),
+             HTML("Sources: American Community Survey and the New York Times"),
+             gt_output("cor_table"),
                        gt_output("lm_table"),
                        h5("Why doesn't this add up?"),
                        p("Unfortunately, looking at a model for the counties in
@@ -257,18 +262,49 @@ ui <- navbarPage(
                          I suspect this is due to the fact that coronavirus has
                          hit metropolitan areas, where median income is often
                          high, masking neighborhoods and cities where the actual
-                         average income is much lower. Some indicators supporting 
-                         my hypothesis are the below plots, colored by state. We
-                         can see that the linear relationship between the number
-                         of cases and the given variable varies widely by state."),
-                       plotOutput("medinc_v_cases"),
-                       plotOutput("pct_unins_v_cases"),
-                       plotOutput("us_black_map"),
-                       plotOutput("us_cases_map"),
-                       plotOutput("ny_black_map"),
-                       plotOutput("ny_cases_map"),
-                       HTML("Sources: American Community Survey and the New York Times")
+                         average income is much lower. Some states also have so
+                         little data that there is not enough to generate a 
+                         significant relationship. Counties with few or no cases
+                         of coronavirus are likely to skew the data. We can see 
+                         that the linear relationship between the number of 
+                         cases and the given variable varies widely by state. 
+                         For example, in Maryland, we see that the number of 
+                         coronavirus cases increases as the percent uninsured 
+                         increases, which aligns with our hypothesis. However, 
+                         this relationship is negatively correlated for many 
+                         other states."),
+             sidebarLayout(
+                 sidebarPanel(
+                 helpText("View the relationship between median income, percent
+                 without health insurance, and number of coronavirus cases by 
+                 county for a particular state."),
+                 
+                 selectInput("var", 
+                             label = "Choose a state to display",
+                             choices = c("Alabama", "Alaska", "Arizona", 
+                                         "Arkansas", "California", "Colorado",
+                                         "Connecticut", "Delaware", "Florida",
+                                         "Georgia", "Hawaii", "Idaho", "Illinois",
+                                         "Indiana", "Iowa", "Kansas", "Kentucky",
+                                         "Louisiana", "Maine", "Maryland", "Massachusetts",
+                                         "Michigan", "Minnesota", "Mississippi",
+                                         "Missouri", "Montana", "Nebraska", 
+                                         "Nevada", "New Hampshire", "New Jersey",
+                                         "New Mexico", "New York", "North Carolina",
+                                         "North Dakota", "Ohio", "Oklahoma", "Oregon",
+                                         "Pennsylvania", "Rhode Island", "South Carolina",
+                                         "South Dakota", "Tennessee", "Texas", 
+                                         "Utah", "Vermont", "Virginia", "Washington",
+                                         "West Virginia", "Wisconsin", "Wyoming"
+                             ),
+                             selected = "New York")
+             ),
+             mainPanel(
+                 plotOutput("medinc_v_cases_by_state"),
+                 plotOutput("pct_unins_v_cases_by_state")
              )
+             
+    )
     ),
     
     tabPanel("About", 
@@ -401,7 +437,7 @@ server <- function(input, output) {
     output$ny_cases_map <- renderPlot(
         county_choropleth(chloropleth_covid,
                           num_colors = 9,
-                          title = "Coronavirus Cases in New York as of April 25th, 2020", 
+                          title = "Coronavirus Cases in New York as of May 7th, 2020", 
                           legend = "Number of Cases",
                           state_zoom = "new york")
     )
@@ -448,17 +484,17 @@ server <- function(input, output) {
                 conf.high = "Upper Bound")
     )
     
-    output$medinc_v_cases <- renderPlot(
+    
+    output$medinc_v_cases_by_state <- renderPlot(
         by_county %>%
-            ggplot(aes(x = medincome, y = cases, color = state)) +
+            filter(state == input$var) %>%
+            ggplot(aes(x = medincome, y = cases)) +
             geom_point() +
             geom_smooth(method = "glm", se = FALSE) +
-            geom_smooth(aes(x = medincome, y = cases), color = "black",
-                        linetype = 3,
-                        method = "glm", se = FALSE) +
             labs(
-                title = "Median Income vs. Number of Coronavirus Cases",
-                subtitle = "By County as of April 25th, 2020",
+                title = "Median Income vs. Number of Coronavirus Cases
+                for Selected State",
+                subtitle = "By County as of May 7th, 2020",
                 y = "Number of Cases",
                 x = "Median Income"
             ) +
@@ -466,17 +502,15 @@ server <- function(input, output) {
             theme(legend.position = "none")
     )
     
-    output$pct_unins_v_cases <- renderPlot(
+    output$pct_unins_v_cases_by_state <- renderPlot(
         by_county %>%
-            ggplot(aes(x = pct_uninsured, y = cases, color = state)) +
+            filter(state == input$var) %>%
+            ggplot(aes(x = pct_uninsured, y = cases)) +
             geom_point() +
             geom_smooth(method = "glm", se = FALSE) +
-            geom_smooth(aes(x = pct_uninsured, y = cases), color = "black",
-                        linetype = 3,
-                        method = "glm", se = FALSE) +
             labs(
                 title = "Percent without Health Insurance vs. Number of Coronavirus Cases",
-                subtitle = "By County as of April 25th, 2020",
+                subtitle = "By County as of May 7th, 2020",
                 y = "Number of Cases",
                 x = "% without Health Insurance"
             ) +
