@@ -12,6 +12,9 @@ impacted the effect of COVID-19 on communities in the United States.
 
 ## Repo Guide
 coronavirus - shiny app and data sources used
+
 life - code for life tab
+
 love - code for love tab
+
 sorrow - code for sorrow tab, which contains analysis about socioeconomic inequality
