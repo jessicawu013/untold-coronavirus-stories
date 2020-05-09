@@ -9,3 +9,9 @@ In light of the fact that African American communities have been hit harder by t
 to the disproportionate number of African Americans with lower incomes and pre-existing health conditions, this project takes
 a look at median income and health insurance data to see if these factors give insight into the way economic inequality has
 impacted the effect of COVID-19 on communities in the United States.
+
+## Repo Guide
+coronavirus - shiny app and data sources used
+life - code for life tab
+love - code for love tab
+sorrow - code for sorrow tab, which contains analysis about socioeconomic inequality
