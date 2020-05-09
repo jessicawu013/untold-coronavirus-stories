@@ -202,11 +202,7 @@ ui <- navbarPage(
              instructed to move out of their dorms in 5 days. Here's how life
              patterns have changed since then."),
                        mainPanel(plotOutput("google_life_plot"),
-                                 p("I would like to export the data from the 
-                                   Health app on my iPhone to take a look at
-                                   how my sleep habits, average daily distance,
-                                   and average screen time have changed since
-                                   being ordered to stay home."))
+                                )
     )
     ),
     tabPanel("Love",
@@ -328,13 +324,20 @@ ui <- navbarPage(
              our daily lives and the rest of the human existence -- from the 
              deterioration of our relationships to struggling to put food on the
              table.'),
+             p("View the", a(href = "https://github.com/jessicawu013/untold-coronavirus-stories",
+                             "Github repo.")),
              h3("About Jessica"),
-             p("I am a first-year at Harvard College studying Applied
-             Math and Economics. You can reach me at jessicawu@college.harvard.edu."))
+             p("I am a student at Harvard College studying Applied
+             Math and Economics. You can reach me at jessicawu@college.harvard.edu
+             or find me on LinkedIn", a(href = "https://www.linkedin.com/in/jessica-wu-22b24a192/",
+             "here.")))
              )
 
 
 server <- function(input, output) {
+    
+    # Renders plot comparing search trends related to daily habits + boredom
+    
     output$google_life_plot <- renderPlot(
         
     home_life %>%
@@ -357,6 +360,8 @@ server <- function(input, output) {
                   size = 3)
     )
     
+    # Renders long distance plot 
+    
     output$long_dist_plot <- renderPlot(
         ggplot(long_dist, aes(x = Day, y = long_dist)) +
             geom_line(color = "light blue") +
@@ -374,6 +379,8 @@ server <- function(input, output) {
                       size = 3) +
             theme_calc()
     )
+    
+    # Renders long distance plot
     
     output$divorce_plot <- renderPlot(
         divorce_terms %>%
@@ -395,6 +402,8 @@ server <- function(input, output) {
                       size = 3)
     )
     
+    # Renders domestic violence plot
+
     output$dom_violence_plot <- renderPlot(
         ggplot(dom_violence, aes(x = Day, y = dom_violence)) +
             geom_line(color = "red") +
@@ -413,12 +422,16 @@ server <- function(input, output) {
             theme_calc()
     )
     
+    # Renders map showing percent black for all of U.S. by county
+    
     output$us_black_map <- renderPlot(
         
         county_choropleth(df_county_demographics,
                           title = "Demographics of the United States in 2013\nPercent Black",
                           legend = "Percent Black")
     )
+    
+    # Renders map showing number of cases for all of U.S. by county
     
     output$us_cases_map <- renderPlot(
         county_choropleth(chloropleth_covid,
@@ -427,12 +440,16 @@ server <- function(input, output) {
                           legend = "Number of Cases")
     )
     
+    # Renders map showing percent black by county for New York
+    
     output$ny_black_map <- renderPlot(
         county_choropleth(df_county_demographics,
                           title = "Demographics of New York in 2013\nPercent Black", 
                           legend = "Percent Black",
                           state_zoom = "new york")
     )
+    
+    # Renders map showing number of coronavirus cases by county for New York
     
     output$ny_cases_map <- renderPlot(
         county_choropleth(chloropleth_covid,
@@ -441,6 +458,9 @@ server <- function(input, output) {
                           legend = "Number of Cases",
                           state_zoom = "new york")
     )
+    
+    # Renders correlation matrix for median income, pct uninsured, number of 
+    # cases by county
     
     output$cor_table <- render_gt(
         by_county %>%
@@ -465,6 +485,8 @@ server <- function(input, output) {
             )
     )
     
+    # Renders linear regression model
+    
     output$lm_table <- render_gt(
         cases_vs_status %>%
             tidy(conf.int = TRUE) %>%
@@ -484,6 +506,8 @@ server <- function(input, output) {
                 conf.high = "Upper Bound")
     )
     
+    # Renders reactive output plot: med income vs number of cases for the 
+    # selected state
     
     output$medinc_v_cases_by_state <- renderPlot(
         by_county %>%
@@ -492,8 +516,7 @@ server <- function(input, output) {
             geom_point() +
             geom_smooth(method = "glm", se = FALSE) +
             labs(
-                title = "Median Income vs. Number of Coronavirus Cases
-                for Selected State",
+                title = "Median Income vs. Number of Coronavirus Cases",
                 subtitle = "By County as of May 7th, 2020",
                 y = "Number of Cases",
                 x = "Median Income"
@@ -501,6 +524,9 @@ server <- function(input, output) {
             theme_classic() +
             theme(legend.position = "none")
     )
+    
+    # Renders reactive output plot: pct uninsured vs number of cases for the 
+    # selected state
     
     output$pct_unins_v_cases_by_state <- renderPlot(
         by_county %>%

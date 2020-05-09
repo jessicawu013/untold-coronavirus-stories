@@ -203,6 +203,25 @@ by_county %>%
   theme(legend.position = "none")
 ```
 
+```{r}
+covid1 <- read_csv("coronavirus/data-sources/us-counties-covid-05-08.csv",
+                  col_types = cols(
+                      date = col_date(format = ""),
+                      county = col_character(),
+                      state = col_character(),
+                      fips = col_character(),
+                      cases = col_double(),
+                      deaths = col_double()
+                  )) %>%
+  filter(date == "2020-05-07")
+
+by_county <- pop %>%
+    left_join(covid1, by = c("GEOID" = "fips")) %>%
+    left_join(sahie, by = c("GEOID" = "fips")) %>%
+    rename(pct_uninsured = PCTELIG)
+```
+```{r}
+```
 
 
 
