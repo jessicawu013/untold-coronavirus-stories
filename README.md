@@ -1,4 +1,4 @@
-# untold-coronavirus-stories: In the Time of Coronavirus
+# In the Time of Coronavirus
 Exploring life, love, and sorrow in the time of coronavirus.
 A analysis of boredom, divorce, long distance relationships, domestic violence, socioeconomic inequality, and more. 
 
